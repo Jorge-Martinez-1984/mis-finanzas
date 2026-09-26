@@ -139,9 +139,11 @@
   </div>
 
   <!-- PANTALLA 4: AHORROS -->
-  <div id="tab-ahorros" class="tab-content">
-    <div class="card">
-      <div class="card-title">Meta de Ahorro Deseada</div>
+  <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="card-title">Meta de Ahorro Deseada</div>
+        <button onclick="cambiarMetaAhorro()" style="background: none; border: none; color: var(--accent-blue); font-size: 12px; font-weight: 600; cursor: pointer;">Editar</button>
+      </div>
       <div class="card-value purple" id="meta-monto">$1.000.000</div>
     </div>
 
@@ -313,6 +315,7 @@
       document.getElementById('total-saldo').innerText = '$' + saldoTotal.toLocaleString();
       document.getElementById('total-gastos-mes').innerText = '$' + gastosMes.toLocaleString();
       document.getElementById('total-ahorrado').innerText = '$' + totalAhorrado.toLocaleString();
+      document.getElementById('meta-monto').innerText = '$' + (db.metaAhorro || 1000000).toLocaleString();
 
       actualizarGrafico(gastosPorEtiqueta);
     }
@@ -367,6 +370,13 @@
         const texto = item.innerText.toLowerCase();
         item.style.display = texto.includes(query) ? 'flex' : 'none';
       });
+    }
+    function cambiarMetaAhorro() {
+      const nuevaMeta = prompt("Ingresa el monto de tu nueva meta de ahorro:", db.metaAhorro || 1000000);
+      if (nuevaMeta && !isNaN(nuevaMeta) && parseFloat(nuevaMeta) > 0) {
+        db.metaAhorro = parseFloat(nuevaMeta);
+        guardarDB();
+      }
     }
 
     actualizarInterfaz();

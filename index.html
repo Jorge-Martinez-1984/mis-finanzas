@@ -22,7 +22,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding-bottom: 80px; }
 
-    /* Encabezado con estado de Sync */
+    /* Encabezado */
     .header {
       padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
       background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); border-bottom: 1px solid var(--card-border);
@@ -61,7 +61,7 @@
     .card-value.red { color: var(--accent-red); }
     .card-value.purple { color: var(--accent-purple); }
 
-    /* Botones de Acción */
+    /* Botones */
     .action-btns { display: flex; gap: 10px; margin-bottom: 16px; }
     .btn {
       flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700;
@@ -73,7 +73,7 @@
     .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 
-    /* Formularios y Buscadores */
+    /* Formularios */
     .form-group { margin-bottom: 14px; }
     label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
     input, select {
@@ -139,7 +139,8 @@
   </div>
 
   <!-- PANTALLA 4: AHORROS -->
-  <div class="card">
+  <div id="tab-ahorros" class="tab-content">
+    <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="card-title">Meta de Ahorro Deseada</div>
         <button onclick="cambiarMetaAhorro()" style="background: none; border: none; color: var(--accent-blue); font-size: 12px; font-weight: 600; cursor: pointer;">Editar</button>
@@ -213,6 +214,14 @@
       localStorage.setItem('finanzas_db', JSON.stringify(db));
       actualizarInterfaz();
       sincronizarConSheets();
+    }
+
+    function cambiarMetaAhorro() {
+      const nuevaMeta = prompt("Ingresa el monto de tu nueva meta de ahorro:", db.metaAhorro || 1000000);
+      if (nuevaMeta && !isNaN(nuevaMeta) && parseFloat(nuevaMeta) > 0) {
+        db.metaAhorro = parseFloat(nuevaMeta);
+        guardarDB();
+      }
     }
 
     function sincronizarConSheets() {
@@ -370,13 +379,6 @@
         const texto = item.innerText.toLowerCase();
         item.style.display = texto.includes(query) ? 'flex' : 'none';
       });
-    }
-    function cambiarMetaAhorro() {
-      const nuevaMeta = prompt("Ingresa el monto de tu nueva meta de ahorro:", db.metaAhorro || 1000000);
-      if (nuevaMeta && !isNaN(nuevaMeta) && parseFloat(nuevaMeta) > 0) {
-        db.metaAhorro = parseFloat(nuevaMeta);
-        guardarDB();
-      }
     }
 
     actualizarInterfaz();

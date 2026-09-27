@@ -61,7 +61,7 @@
     .card-value.red { color: var(--accent-red); }
     .card-value.purple { color: var(--accent-purple); }
 
-    /* Botones */
+    /* Botones de Acción */
     .action-btns { display: flex; gap: 10px; margin-bottom: 16px; }
     .btn {
       flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700;
@@ -72,6 +72,7 @@
     .btn-green { background: linear-gradient(135deg, #10b981, #059669); }
     .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text-muted); font-size: 13px; padding: 8px; margin-top: 8px; width: 100%; }
 
     /* Formularios */
     .form-group { margin-bottom: 14px; }
@@ -110,8 +111,8 @@
     </div>
 
     <div class="action-btns">
-      <button class="btn btn-green" onclick="mostrarModal('ingreso')">+ Ingreso</button>
-      <button class="btn btn-red" onclick="mostrarModal('egreso')">- Egreso</button>
+      <button class="btn btn-green" onclick="mostrarModal('ingreso')">Ingreso</button>
+      <button class="btn btn-red" onclick="mostrarModal('egreso')">Egreso</button>
     </div>
 
     <div class="card">
@@ -141,11 +142,9 @@
   <!-- PANTALLA 4: AHORROS -->
   <div id="tab-ahorros" class="tab-content">
     <div class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="card-title">Meta de Ahorro Deseada</div>
-        <button onclick="cambiarMetaAhorro()" style="background: none; border: none; color: var(--accent-blue); font-size: 12px; font-weight: 600; cursor: pointer;">Editar</button>
-      </div>
-      <div class="card-value purple" id="meta-monto">$1.000.000</div>
+      <div class="card-title" id="nombre-meta-display">Meta: Fondo de Reserva</div>
+      <div class="card-value purple" id="meta-monto">$0</div>
+      <button class="btn btn-outline" onclick="mostrarModalMeta()">Configurar Meta</button>
     </div>
 
     <div class="card">
@@ -154,20 +153,20 @@
     </div>
 
     <div class="form-group">
-      <button class="btn btn-blue" onclick="mostrarModal('ahorro')">+ Aportar a Ahorro</button>
+      <button class="btn btn-blue" onclick="mostrarModal('ahorro')">Aportar Ahorro</button>
     </div>
 
     <div class="card-title" style="margin-top: 16px; margin-bottom: 8px;">Historial de Aportes</div>
     <div id="lista-ahorros"></div>
   </div>
 
-  <!-- MODAL / FORMULARIO RÁPIDO DE REGISTRO -->
+  <!-- MODAL / REGISTRO MOVIMIENTO -->
   <div id="modal-registro" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(5px); z-index:200; padding:20px;">
     <div class="card" style="margin-top: 40px; background: var(--modal-bg);">
       <h3 id="modal-titulo" style="margin-bottom: 16px;">Registrar Movimiento</h3>
       
       <div class="form-group">
-        <label>Monto</label>
+        <label>Monto (CLP)</label>
         <input type="number" id="reg-monto" placeholder="Ej: 5000" inputmode="numeric">
       </div>
 
@@ -191,6 +190,28 @@
     </div>
   </div>
 
+  <!-- MODAL / CONFIGURAR META AHORRO -->
+  <div id="modal-meta" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(5px); z-index:200; padding:20px;">
+    <div class="card" style="margin-top: 40px; background: var(--modal-bg);">
+      <h3 style="margin-bottom: 16px;">Configurar Meta de Ahorro</h3>
+      
+      <div class="form-group">
+        <label>Nombre de la Meta</label>
+        <input type="text" id="meta-nombre-input" placeholder="Ej: Vacaciones 2027, Cambio de vehículo...">
+      </div>
+
+      <div class="form-group">
+        <label>Monto Objetivo (CLP)</label>
+        <input type="number" id="meta-monto-input" placeholder="Ej: 1000000" inputmode="numeric">
+      </div>
+
+      <div class="action-btns">
+        <button class="btn btn-blue" onclick="guardarMeta()">Guardar Meta</button>
+        <button class="btn btn-red" onclick="cerrarModalMeta()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- NAVEGACIÓN INFERIOR -->
   <div class="nav-bar">
     <button class="nav-btn active" onclick="cambiarTab('dashboard', this)"><span>Dashboard</span></button>
@@ -205,23 +226,24 @@
     let tipoActual = '';
     let db = JSON.parse(localStorage.getItem('finanzas_db')) || {
       movimientos: [],
+      nombreMeta: "Fondo de Reserva",
       metaAhorro: 1000000
     };
 
     let chartInstance = null;
 
+    // Formateador CLP (Usa '.' para miles y sin decimales)
+    function formatoCLP(valor) {
+      return '$' + new Intl.NumberFormat('es-CL', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(valor);
+    }
+
     function guardarDB() {
       localStorage.setItem('finanzas_db', JSON.stringify(db));
       actualizarInterfaz();
       sincronizarConSheets();
-    }
-
-    function cambiarMetaAhorro() {
-      const nuevaMeta = prompt("Ingresa el monto de tu nueva meta de ahorro:", db.metaAhorro || 1000000);
-      if (nuevaMeta && !isNaN(nuevaMeta) && parseFloat(nuevaMeta) > 0) {
-        db.metaAhorro = parseFloat(nuevaMeta);
-        guardarDB();
-      }
     }
 
     function sincronizarConSheets() {
@@ -233,7 +255,7 @@
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sync", movimientos: db.movimientos })
+        body: JSON.stringify({ action: "sync", movimientos: db.movimientos, meta: db.nombreMeta, montoMeta: db.metaAhorro })
       }).then(() => {
         statusEl.innerText = "Sincronizado";
         statusEl.className = "sync-status online";
@@ -262,6 +284,27 @@
       document.getElementById('reg-monto').value = '';
       document.getElementById('reg-etiqueta').value = '';
       document.getElementById('reg-obs').value = '';
+    }
+
+    function mostrarModalMeta() {
+      document.getElementById('meta-nombre-input').value = db.nombreMeta || '';
+      document.getElementById('meta-monto-input').value = db.metaAhorro || '';
+      document.getElementById('modal-meta').style.display = 'block';
+    }
+
+    function cerrarModalMeta() {
+      document.getElementById('modal-meta').style.display = 'none';
+    }
+
+    function guardarMeta() {
+      const nombre = document.getElementById('meta-nombre-input').value.trim();
+      const monto = parseFloat(document.getElementById('meta-monto-input').value);
+
+      if (nombre) db.nombreMeta = nombre;
+      if (monto && monto > 0) db.metaAhorro = monto;
+
+      guardarDB();
+      cerrarModalMeta();
     }
 
     function guardarMovimiento() {
@@ -301,7 +344,7 @@
 
       db.movimientos.sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(m => {
         const f = new Date(m.fecha);
-        const fechaFormateada = f.toLocaleDateString() + ' ' + f.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const fechaFormateada = f.toLocaleDateString('es-CL') + ' ' + f.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
         if (m.tipo === 'ingreso') {
           saldoTotal += m.monto;
@@ -321,10 +364,13 @@
         }
       });
 
-      document.getElementById('total-saldo').innerText = '$' + saldoTotal.toLocaleString();
-      document.getElementById('total-gastos-mes').innerText = '$' + gastosMes.toLocaleString();
-      document.getElementById('total-ahorrado').innerText = '$' + totalAhorrado.toLocaleString();
-      document.getElementById('meta-monto').innerText = '$' + (db.metaAhorro || 1000000).toLocaleString();
+      document.getElementById('total-saldo').innerText = formatoCLP(saldoTotal);
+      document.getElementById('total-gastos-mes').innerText = formatoCLP(gastosMes);
+      document.getElementById('total-ahorrado').innerText = formatoCLP(totalAhorrado);
+
+      // Actualizar Sección Meta Dinámica
+      document.getElementById('nombre-meta-display').innerText = 'Meta: ' + (db.nombreMeta || 'Fondo de Reserva');
+      document.getElementById('meta-monto').innerText = formatoCLP(db.metaAhorro || 0);
 
       actualizarGrafico(gastosPorEtiqueta);
     }
@@ -337,7 +383,7 @@
           <strong>${m.etiqueta || 'Ahorro'}</strong>
           <div class="item-meta">${fecha} ${m.obs ? ' - ' + m.obs : ''}</div>
         </div>
-        <div style="font-weight:700; color:var(--text-main);">$${m.monto.toLocaleString()}</div>
+        <div style="font-weight:700; color:var(--text-main);">${formatoCLP(m.monto)}</div>
       `;
       document.getElementById(contenedorId).appendChild(div);
     }
